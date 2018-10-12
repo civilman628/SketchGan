@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>eb154f7d-1bf6-472f-8536-19ce9fd251c0</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>sketch_gan.py</StartupFile>
+    <StartupFile>test_model.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -33,6 +33,9 @@
     </Compile>
     <Compile Include="sketch_gan.py" />
     <Compile Include="test.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="test_model.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="train.py">

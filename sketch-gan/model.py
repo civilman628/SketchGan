@@ -18,9 +18,18 @@ class ResidualBlock(nn.Module):
     def forward(self,x):
         return x + self.layers(x)
 
+class DownSample(nn.Module):
+    def __init__(self):
+        super(DownSample,self).__init__()
+
+    def forward(self,x):
+        x = F.interpolate(x,scale_factor=0.5)
+        return x
+
+
 class ResidualBlock2(nn.Module):
     '''Residual block'''
-    def __init__(self, dim_in, dim_out):
+    def __init__(self, in_channels, out_channels):
         super(ResidualBlock2, self).__init__()
 
         self.conv1 = nn.Conv2d(in_channels, in_channels, 3, 1, padding=1,bias=False)
@@ -69,11 +78,11 @@ class ResidualBlockUp(nn.Module):
             self.conv1,
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
-            nn.upsampling(scale_factor=2),
+            nn.Upsample(scale_factor=2),
             self.conv2
             )
         self.upsample = nn.Sequential(
-            nn.upsampling(scale_factor=2)
+            nn.Upsample(scale_factor=2)
             )
 
     def forward(self, x):
@@ -83,7 +92,7 @@ class ResidualBlockUp(nn.Module):
 class ResidualBlockDown(nn.Module):
     '''Residual block with instance normalization'''
     def __init__(self, in_channels, out_channels,ch=64):
-        super(ResidualBlockUp,self).__init__()
+        super(ResidualBlockDown,self).__init__()
         self.conv1 = nn.Conv2d(in_channels, in_channels, 3, 1, padding=1)
         self.conv2 = nn.Conv2d(in_channels, out_channels*ch, 3, 1, padding=1)
         nn.init.orthogonal(self.conv1.weight.data, 1.)
@@ -101,16 +110,21 @@ class ResidualBlockDown(nn.Module):
             self.conv1,
             #nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
-            nn.upsampling(scale_factor=0.5),
+            #nn.Upsample(scale_factor=0.5),
+            #F.interpolate(scale_factor=0.5),
+            DownSample(),
             self.conv2
             )
-        self.upsample = nn.Sequential(
-            nn.upsampling(scale_factor=0.5)
+        self.downsample = nn.Sequential(
+            #nn.Upsample(scale_factor=0.5)
+            DownSample()
             )
 
     def forward(self, x):
-        x = self.model(x) + self.upsample(x)
-        return x
+        out1 = self.model(x) 
+        out2 = self.downsample(x)
+        out1 += out2
+        return out1
 
 class Generator2(nn.Module):
     def __init__(self,n_dim=128,ch=64):
@@ -145,7 +159,7 @@ class Generator2(nn.Module):
 
 class Discriminator(nn.Module):
     "Discriminator network."
-    def __init__(self ,image_size=256, ch=64):
+    def __init__(self, ch=64):
         super(Discriminator,self).__init__()
 
         self.model = nn.Sequential(
