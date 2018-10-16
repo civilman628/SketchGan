@@ -26,6 +26,13 @@ class DownSample(nn.Module):
         x = F.interpolate(x,scale_factor=0.5)
         return x
 
+class UpSample(nn.Module):
+    def __init__(self):
+        super(UpSample,self).__init__()
+
+    def forward(self,x):
+        x = F.interpolate(x,scale_factor=2)
+        return x
 
 class ResidualBlock2(nn.Module):
     '''Residual block'''
@@ -61,33 +68,39 @@ class ResidualBlockUp(nn.Module):
     '''Residual block with instance normalization'''
     def __init__(self, in_channels, out_channels,ch=64):
         super(ResidualBlockUp,self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, out_channels*ch, 3, 1, padding=1,bias=False)
+        self.conv1 = nn.Conv2d(in_channels*ch, out_channels*ch, 3, 1, padding=1,bias=False)
         self.conv2 = nn.Conv2d(out_channels*ch, out_channels*ch, 3, 1, padding=1,bias=False)
+        self.identity = nn.Conv2d(in_channels*ch, out_channels*ch, 1, 1)
         nn.init.orthogonal(self.conv1.weight.data, 1.)
         nn.init.orthogonal(self.conv2.weight.data, 1.)
+        nn.init.orthogonal(self.identity.weight.data, 1.)
         #nn.init.orthogonal(self.conv1.weight.data)
 
         #self.model =[]
         #model.append(nn.BatchNorm2d(in_channels))
         #model.append(nn.ReLU)
         #model.append
+        self.shortcut= nn.Sequential(
+            nn.BatchNorm2d(in_channels*ch),
+            nn.ReLU(inplace=True),
+            UpSample(),
+            self.identity,
+            )
         
         self.model=nn.Sequential(
-            nn.BatchNorm2(in_channels),
+            nn.BatchNorm2d(in_channels*ch),
             nn.ReLU(inplace=True),
             self.conv1,
-            nn.BatchNorm2d(out_channels),
+            nn.BatchNorm2d(out_channels*ch),
             nn.ReLU(inplace=True),
-            nn.Upsample(scale_factor=2),
+            UpSample(),
             self.conv2
-            )
-        self.upsample = nn.Sequential(
-            nn.Upsample(scale_factor=2)
             )
 
     def forward(self, x):
-        x = self.model(x) + self.upsample(x)
-        return x
+        right = self.shortcut(x)
+        x = self.model(x) 
+        return x + right
 
 class ResidualBlockDown(nn.Module):
     '''Residual block with instance normalization'''
@@ -95,14 +108,21 @@ class ResidualBlockDown(nn.Module):
         super(ResidualBlockDown,self).__init__()
         self.conv1 = nn.Conv2d(in_channels, in_channels, 3, 1, padding=1)
         self.conv2 = nn.Conv2d(in_channels, out_channels*ch, 3, 1, padding=1)
+        self.identity = nn.Conv2d(in_channels, out_channels*ch, 1, 1)
         nn.init.orthogonal(self.conv1.weight.data, 1.)
         nn.init.orthogonal(self.conv2.weight.data, 1.)
-        #nn.init.orthogonal(self.conv1.weight.data)
+        nn.init.orthogonal(self.identity.weight.data, 1.)
 
         #self.model =[]
         #model.append(nn.BatchNorm2d(in_channels))
         #model.append(nn.ReLU)
         #model.append
+
+        self.shortcut= nn.Sequential(
+            nn.ReLU(inplace=True),
+            self.identity,
+            DownSample()
+            )
         
         self.model=nn.Sequential(
             #nn.BatchNorm2(in_channels),
@@ -110,31 +130,24 @@ class ResidualBlockDown(nn.Module):
             self.conv1,
             #nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
-            #nn.Upsample(scale_factor=0.5),
-            #F.interpolate(scale_factor=0.5),
             DownSample(),
             self.conv2
             )
-        self.downsample = nn.Sequential(
-            #nn.Upsample(scale_factor=0.5)
-            DownSample()
-            )
 
     def forward(self, x):
-        out1 = self.model(x) 
-        out2 = self.downsample(x)
-        out1 += out2
-        return out1
+        left = self.model(x) 
+        right = self.shortcut(x)
+        return left + right
 
 class Generator2(nn.Module):
     def __init__(self,n_dim=128,ch=64):
         super(Generator2,self).__init__()
-
-        self.denselayer = nn.Linear(n_dim,4*4*16*ch)
+        self.ch=ch
+        self.denselayer = nn.Linear(n_dim,4*4*16*self.ch)
         self.final = nn.Conv2d(ch, 3, kernel_size=3, stride=1, padding=1,bias=False)
 
-        nn.init.xavier_uniform(self.denselayer.weight.data, 1.)
-        nn.init.xavier_uniform(self.final.weight.data, 1.)
+        nn.init.orthogonal(self.denselayer.weight.data, 1.)
+        nn.init.orthogonal(self.final.weight.data, 1.)
 
         self.model = nn.Sequential(
             ResidualBlockUp(16,16),
@@ -143,16 +156,16 @@ class Generator2(nn.Module):
             ResidualBlockUp(8,4),
             ResidualBlockUp(4,2),
             ResidualBlockUp(2,1),
-            nn.BatchNorm2d(ch),
+            nn.BatchNorm2d(self.ch),
             nn.ReLU(inplace=True),
             self.final,
             nn.Tanh()
             )
 
-    def foward(self,x):
+    def forward(self,x):
         x=self.denselayer(x)
-        x=x.view(-1, 16*ch, 4,4)
-        x=model(x)
+        x=x.view(-1, 16*self.ch, 4,4)
+        x=self.model(x)
 
         return x
 
