@@ -25,7 +25,7 @@
     <Compile Include="config.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="dataloder.py">
+    <Compile Include="dataloader.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="model.py">
