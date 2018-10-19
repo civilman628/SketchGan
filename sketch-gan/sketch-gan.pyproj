@@ -28,10 +28,19 @@
     <Compile Include="dataloader.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="logger.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="main.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="model.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="sketch_gan.py" />
+    <Compile Include="spectral.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="test.py">
       <SubType>Code</SubType>
     </Compile>
@@ -39,6 +48,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="train.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="utils.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

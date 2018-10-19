@@ -2,6 +2,35 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from spectral import SpectralNorm
+
+class Nonlocal(nn.Module):
+    def __init__(self,in_channels):
+        ''' https://zhuanlan.zhihu.com/p/33345791 '''
+        super(Nonlocal,self).__init__()
+        self.inter_channels=in_channels//2
+
+        self.theta = nn.Conv2d(in_channels,inter_channels,1,1)
+        self.phi    = nn.Conv2d(in_channels,inter_channels,1,1)
+        self.g = nn.Conv2d(in_channels,inter_channels,1,1)
+        sefl.bn = nn.BatchNorm2d(in_channels)
+
+
+    def forward(self, x):
+        batchsize = x.size(0)
+        theta_x = self.theta(x)
+        theta_x = theta_x.view(batchsize,-1,self.inter_channels)
+        phi_x = self.phi(x)
+        phi_x = phi_x.view(batchsize,-1,self.inter_channels)
+        phi_x = phi_x.permute(0,2,1)
+        f = torch.matmul(theta_x,phi_x)
+
+        return   
+
+
+
+
+
 
 class ResidualBlock(nn.Module):
     '''Residual block with instance normalization'''
@@ -84,17 +113,17 @@ class ResidualBlockUp(nn.Module):
             nn.BatchNorm2d(in_channels*ch),
             nn.ReLU(inplace=True),
             UpSample(),
-            self.identity,
+            SpectralNorm(self.identity),
             )
         
         self.model=nn.Sequential(
             nn.BatchNorm2d(in_channels*ch),
             nn.ReLU(inplace=True),
-            self.conv1,
+            SpectralNorm(self.conv1),
             nn.BatchNorm2d(out_channels*ch),
             nn.ReLU(inplace=True),
             UpSample(),
-            self.conv2
+            SpectralNorm(self.conv2)
             )
 
     def forward(self, x):
@@ -120,18 +149,18 @@ class ResidualBlockDown(nn.Module):
 
         self.shortcut= nn.Sequential(
             nn.ReLU(inplace=True),
-            self.identity,
+            SpectralNorm(self.identity),
             DownSample()
             )
         
         self.model=nn.Sequential(
             #nn.BatchNorm2(in_channels),
             nn.ReLU(inplace=True),
-            self.conv1,
+            SpectralNorm(self.conv1),
             #nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
             DownSample(),
-            self.conv2
+            SpectralNorm(self.conv2)
             )
 
     def forward(self, x):
@@ -158,7 +187,7 @@ class Generator2(nn.Module):
             ResidualBlockUp(2,1),
             nn.BatchNorm2d(self.ch),
             nn.ReLU(inplace=True),
-            self.final,
+            SpectralNorm(self.final),
             nn.Tanh()
             )
 
