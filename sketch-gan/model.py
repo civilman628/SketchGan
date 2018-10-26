@@ -10,26 +10,41 @@ class Nonlocal(nn.Module):
         super(Nonlocal,self).__init__()
         self.inter_channels=in_channels//2
 
-        self.theta = nn.Conv2d(in_channels,inter_channels,1,1)
-        self.phi    = nn.Conv2d(in_channels,inter_channels,1,1)
-        self.g = nn.Conv2d(in_channels,inter_channels,1,1)
-        sefl.bn = nn.BatchNorm2d(in_channels)
+        self.theta = nn.Conv2d(in_channels,self.inter_channels,1,1)
+        self.phi = nn.Conv2d(in_channels,self.inter_channels,1,1)
+        self.g = nn.Conv2d(in_channels,self.inter_channels,1,1)
+
+        self.recovery = nn.Conv2d(self.inter_channels,in_channels,1,1)
+        #nn.Sequential(
+            
+            #nn.BatchNorm2d(in_channels)
+            #)
 
 
     def forward(self, x):
         batchsize = x.size(0)
+        print ('x: ',x.size())
         theta_x = self.theta(x)
         theta_x = theta_x.view(batchsize,-1,self.inter_channels)
         phi_x = self.phi(x)
         phi_x = phi_x.view(batchsize,-1,self.inter_channels)
         phi_x = phi_x.permute(0,2,1)
         f = torch.matmul(theta_x,phi_x)
+        #f = F.softmax(f)
+        N = f.size(-1)
+        f = f / N
+        print ('f: ',f.size())
+        g_x = self.g(x)
+        g_x = g_x.view(batchsize,-1,self.inter_channels)
+        y = torch.matmul(f,g_x)
+        print("y: ",y.size())
+        y =  y.view(batchsize,x.size(1),x.size(2),self.inter_channels)
+        print("y: ",y.size())
+        y = self.recovery(y)
+        print("y: ",y.size(),' x: ', x.size())
+        z = x+y
 
-        return   
-
-
-
-
+        return z
 
 
 class ResidualBlock(nn.Module):
@@ -70,8 +85,8 @@ class ResidualBlock2(nn.Module):
 
         self.conv1 = nn.Conv2d(in_channels, in_channels, 3, 1, padding=1,bias=False)
         self.conv2 = nn.Conv2d(in_channels, out_channels, 3, 1, padding=1,bias=False)
-        nn.init.orthogonal(self.conv1.weight.data, 1.)
-        nn.init.orthogonal(self.conv2.weight.data, 1.)
+        nn.init.orthogonal_(self.conv1.weight.data, 1.)
+        nn.init.orthogonal_(self.conv2.weight.data, 1.)
 
         self.layers=nn.Sequential(
             nn.ReLU(inplace=True),
@@ -100,9 +115,9 @@ class ResidualBlockUp(nn.Module):
         self.conv1 = nn.Conv2d(in_channels*ch, out_channels*ch, 3, 1, padding=1,bias=False)
         self.conv2 = nn.Conv2d(out_channels*ch, out_channels*ch, 3, 1, padding=1,bias=False)
         self.identity = nn.Conv2d(in_channels*ch, out_channels*ch, 1, 1)
-        nn.init.orthogonal(self.conv1.weight.data, 1.)
-        nn.init.orthogonal(self.conv2.weight.data, 1.)
-        nn.init.orthogonal(self.identity.weight.data, 1.)
+        nn.init.orthogonal_(self.conv1.weight.data, 1.)
+        nn.init.orthogonal_(self.conv2.weight.data, 1.)
+        nn.init.orthogonal_(self.identity.weight.data, 1.)
         #nn.init.orthogonal(self.conv1.weight.data)
 
         #self.model =[]
@@ -138,9 +153,9 @@ class ResidualBlockDown(nn.Module):
         self.conv1 = nn.Conv2d(in_channels, in_channels, 3, 1, padding=1)
         self.conv2 = nn.Conv2d(in_channels, out_channels*ch, 3, 1, padding=1)
         self.identity = nn.Conv2d(in_channels, out_channels*ch, 1, 1)
-        nn.init.orthogonal(self.conv1.weight.data, 1.)
-        nn.init.orthogonal(self.conv2.weight.data, 1.)
-        nn.init.orthogonal(self.identity.weight.data, 1.)
+        nn.init.orthogonal_(self.conv1.weight.data, 1.)
+        nn.init.orthogonal_(self.conv2.weight.data, 1.)
+        nn.init.orthogonal_(self.identity.weight.data, 1.)
 
         #self.model =[]
         #model.append(nn.BatchNorm2d(in_channels))
@@ -175,8 +190,8 @@ class Generator2(nn.Module):
         self.denselayer = nn.Linear(n_dim,4*4*16*self.ch)
         self.final = nn.Conv2d(ch, 3, kernel_size=3, stride=1, padding=1,bias=False)
 
-        nn.init.orthogonal(self.denselayer.weight.data, 1.)
-        nn.init.orthogonal(self.final.weight.data, 1.)
+        nn.init.orthogonal_(self.denselayer.weight.data, 1.)
+        nn.init.orthogonal_(self.final.weight.data, 1.)
 
         self.model = nn.Sequential(
             ResidualBlockUp(16,16),
@@ -184,6 +199,7 @@ class Generator2(nn.Module):
             ResidualBlockUp(8,8),
             ResidualBlockUp(8,4),
             ResidualBlockUp(4,2),
+            Nonlocal(2*ch),
             ResidualBlockUp(2,1),
             nn.BatchNorm2d(self.ch),
             nn.ReLU(inplace=True),
@@ -207,6 +223,7 @@ class Discriminator(nn.Module):
         self.model = nn.Sequential(
             ResidualBlockDown(3,1),
             ResidualBlockDown(1*ch,2),
+            Nonlocal(2*ch),
             ResidualBlockDown(2*ch,4),
             ResidualBlockDown(4*ch,8),
             ResidualBlockDown(8*ch,8),
