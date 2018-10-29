@@ -15,30 +15,27 @@ class Nonlocal(nn.Module):
         self.g = nn.Conv2d(in_channels,self.inter_channels,1,1)
 
         self.recovery = nn.Conv2d(self.inter_channels,in_channels,1,1)
-        #nn.Sequential(
-            
-            #nn.BatchNorm2d(in_channels)
-            #)
-
 
     def forward(self, x):
         batchsize = x.size(0)
         print ('x: ',x.size())
         theta_x = self.theta(x)
-        theta_x = theta_x.view(batchsize,-1,self.inter_channels)
+        theta_x = theta_x.view(batchsize,self.inter_channels,-1)
+        theta_x = theta_x.permute(0,2,1)
         phi_x = self.phi(x)
-        phi_x = phi_x.view(batchsize,-1,self.inter_channels)
-        phi_x = phi_x.permute(0,2,1)
+        phi_x = phi_x.view(batchsize,self.inter_channels,-1)
         f = torch.matmul(theta_x,phi_x)
         #f = F.softmax(f)
         N = f.size(-1)
         f = f / N
         print ('f: ',f.size())
         g_x = self.g(x)
-        g_x = g_x.view(batchsize,-1,self.inter_channels)
+        g_x = g_x.view(batchsize,self.inter_channels,-1)
+        g_x = g_x.permute(0, 2, 1)
         y = torch.matmul(f,g_x)
+        y = y.permute(0, 2, 1)
         print("y: ",y.size())
-        y =  y.view(batchsize,x.size(1),x.size(2),self.inter_channels)
+        y =  y.view(batchsize,self.inter_channels,x.size(2),x.size(3))
         print("y: ",y.size())
         y = self.recovery(y)
         print("y: ",y.size(),' x: ', x.size())
@@ -105,7 +102,9 @@ class GlobalSumPooling(nn.Module):
         
     def forward(self, x):
         x = x.view(x.size(0),x.size(1),-1)
+        print('sum size:', x.size())
         x = torch.sum(x,dim=2)
+        
         return x
 
 class ResidualBlockUp(nn.Module):
