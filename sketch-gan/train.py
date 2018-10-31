@@ -11,7 +11,7 @@ from torchvision.utils import save_image
 from logger import Logger
 
 
-class Train(object):
+class Trainer(object):
     def __init__(self, data_loader, config):
         # Data loader
         self.data_loader = data_loader

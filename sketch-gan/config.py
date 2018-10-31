@@ -2,6 +2,15 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 # Model hyper-parameters
 parser.add_argument('--model', type=str, default='sagan', choices=['sagan', 'qgan'])
 parser.add_argument('--adv_loss', type=str, default='wgan-gp', choices=['wgan-gp', 'hinge'])
@@ -30,11 +39,11 @@ parser.add_argument('--pretrained_model', type=int, default=None)
 # Misc
 parser.add_argument('--train', type=str2bool, default=True)
 parser.add_argument('--parallel', type=str2bool, default=False)
-parser.add_argument('--dataset', type=str, default='cifar', choices=['lsun', 'celeb'])
+parser.add_argument('--dataset', type=str, default='dresses', choices=['dresses', 'tops'])
 parser.add_argument('--use_tensorboard', type=str2bool, default=False)
 
 # Path
-parser.add_argument('--image_path', type=str, default='./data')
+parser.add_argument('--image_path', type=str, default='../../data/')
 parser.add_argument('--log_path', type=str, default='./logs')
 parser.add_argument('--model_save_path', type=str, default='./models')
 parser.add_argument('--sample_path', type=str, default='./samples')

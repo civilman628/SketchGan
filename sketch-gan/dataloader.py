@@ -1,6 +1,7 @@
 import torch
 from torchvision.datasets import ImageFolder
 from torchvision import transforms
+import os
 
 
 class Data_Loader():
@@ -26,7 +27,7 @@ class Data_Loader():
         return transform
 
     def load_dresses(self):
-        transforms = self.transform(False, True, True, False)
+        transforms = self.transform(False, False, True, False)
         dataset = ImageFolder(self.path+'/dresses', transform=transforms)
         return dataset
 
@@ -37,11 +38,16 @@ class Data_Loader():
 
 
     def loader(self):
+        '''
         if self.dataset == 'dresses':
             dataset = self.load_dresses()
         elif self.dataset == 'tops':
             dataset = self.load_tops()
-        
+        '''
+        transforms = self.transform(False, False, True, False)
+        #print (os.path.abspath('../../data/dresses'))
+        dataset = ImageFolder( self.path, transform=transforms)
+
         loader = torch.utils.data.DataLoader(dataset=dataset,
                                               batch_size=self.batch,
                                               shuffle=self.shuf,

@@ -27,6 +27,7 @@ class Nonlocal(nn.Module):
         f = torch.matmul(theta_x,phi_x)
         #f = F.softmax(f)
         N = f.size(-1)
+        print("N is :",N)
         f = f / N
         print ('f: ',f.size())
         g_x = self.g(x)
@@ -101,6 +102,7 @@ class GlobalSumPooling(nn.Module):
         super(GlobalSumPooling, self).__init__()
         
     def forward(self, x):
+        print("x before resize:", x.shape)
         x = x.view(x.size(0),x.size(1),-1)
         print('sum size:', x.size())
         x = torch.sum(x,dim=2)

@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>eb154f7d-1bf6-472f-8536-19ce9fd251c0</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>test_model.py</StartupFile>
+    <StartupFile>main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
