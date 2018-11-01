@@ -21,12 +21,12 @@ parser.add_argument('--g_conv_dim', type=int, default=64)
 parser.add_argument('--d_conv_dim', type=int, default=64)
 parser.add_argument('--lambda_gp', type=float, default=10)
 parser.add_argument('--version', type=str, default='sagan_1')
-parser.add_argument('--ch', type=int, default=32)
+parser.add_argument('--ch', type=int, default=64)
 
 # Training setting
 parser.add_argument('--total_step', type=int, default=1000000, help='how many times to update the generator')
-parser.add_argument('--d_iters', type=float, default=2)
-parser.add_argument('--batch_size', type=int, default=4)
+parser.add_argument('--d_iters', type=int, default=2)
+parser.add_argument('--batch_size', type=int, default=2)
 parser.add_argument('--num_workers', type=int, default=2)
 parser.add_argument('--g_lr', type=float, default=0.00005)
 parser.add_argument('--d_lr', type=float, default=0.0002)
@@ -51,9 +51,9 @@ parser.add_argument('--sample_path', type=str, default='./samples')
 parser.add_argument('--attn_path', type=str, default='./attn')
 
 # Step size
-parser.add_argument('--log_step', type=int, default=10)
-parser.add_argument('--sample_step', type=int, default=100)
-parser.add_argument('--model_save_step', type=float, default=1.0)
+parser.add_argument('--log_step', type=int, default=10) #10
+parser.add_argument('--sample_step', type=int, default=500) #100
+parser.add_argument('--model_save_step', type=float, default=500) #1.0
 
 def get_config():
     args = parser.parse_args()

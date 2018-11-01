@@ -72,7 +72,7 @@ class Trainer(object):
         # Data iterator
         data_iter = iter(self.data_loader)
         step_per_epoch = len(self.data_loader)
-        model_save_step = int(self.model_save_step * step_per_epoch)
+        model_save_step = self.model_save_step #int(self.model_save_step * step_per_epoch)
 
         # Fixed input for debugging
         fixed_z = cudatensor(torch.randn(self.batch_size, self.z_dim))
@@ -101,53 +101,56 @@ class Trainer(object):
             # Compute loss with real images
             # dr1, dr2, df1, df2, gf1, gf2 are attention scores
             real_images = cudatensor(real_images)
-            d_out_real = self.D(real_images)
-            if self.adv_loss == 'wgan-gp':
-                d_loss_real = - torch.mean(d_out_real)
-            elif self.adv_loss == 'hinge':
-                d_loss_real = torch.nn.ReLU()(1.0 - d_out_real).mean()
+            
 
-            # apply Gumbel Softmax
-            z = cudatensor(torch.randn(real_images.size(0), self.z_dim))
-            fake_images = self.G(z)
-            d_out_fake = self.D(fake_images)
+            for i in range(self.d_iters):
+                d_out_real = self.D(real_images)
+                if self.adv_loss == 'wgan-gp':
+                    d_loss_real = - torch.mean(d_out_real)
+                elif self.adv_loss == 'hinge':
+                    d_loss_real = torch.nn.ReLU()(1.0 - d_out_real).mean()
 
-            if self.adv_loss == 'wgan-gp':
-                d_loss_fake = d_out_fake.mean()
-            elif self.adv_loss == 'hinge':
-                d_loss_fake = torch.nn.ReLU()(1.0 + d_out_fake).mean()
+                # apply Gumbel Softmax
+                z = cudatensor(torch.randn(real_images.size(0), self.z_dim))
+                fake_images = self.G(z)
+                d_out_fake = self.D(fake_images)
 
+                if self.adv_loss == 'wgan-gp':
+                    d_loss_fake = d_out_fake.mean()
+                elif self.adv_loss == 'hinge':
+                    d_loss_fake = torch.nn.ReLU()(1.0 + d_out_fake).mean()
 
-            # Backward + Optimize
-            d_loss = d_loss_real + d_loss_fake
-            self.reset_grad()
-            d_loss.backward()
-            self.d_optimizer.step()
-
-
-            if self.adv_loss == 'wgan-gp':
-                # Compute gradient penalty
-                alpha = torch.rand(real_images.size(0), 1, 1, 1).cuda().expand_as(real_images)
-                interpolated = Variable(alpha * real_images.data + (1 - alpha) * fake_images.data, requires_grad=True)
-                out = self.D(interpolated)
-
-                grad = torch.autograd.grad(outputs=out,
-                                           inputs=interpolated,
-                                           grad_outputs=torch.ones(out.size()).cuda(),
-                                           retain_graph=True,
-                                           create_graph=True,
-                                           only_inputs=True)[0]
-
-                grad = grad.view(grad.size(0), -1)
-                grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
-                d_loss_gp = torch.mean((grad_l2norm - 1) ** 2)
 
                 # Backward + Optimize
-                d_loss = self.lambda_gp * d_loss_gp
-
+                d_loss = d_loss_real + d_loss_fake
                 self.reset_grad()
                 d_loss.backward()
                 self.d_optimizer.step()
+
+
+                if self.adv_loss == 'wgan-gp':
+                    # Compute gradient penalty
+                    alpha = torch.rand(real_images.size(0), 1, 1, 1).cuda().expand_as(real_images)
+                    interpolated = Variable(alpha * real_images.data + (1 - alpha) * fake_images.data, requires_grad=True)
+                    out = self.D(interpolated)
+
+                    grad = torch.autograd.grad(outputs=out,
+                                               inputs=interpolated,
+                                               grad_outputs=torch.ones(out.size()).cuda(),
+                                               retain_graph=True,
+                                               create_graph=True,
+                                               only_inputs=True)[0]
+
+                    grad = grad.view(grad.size(0), -1)
+                    grad_l2norm = torch.sqrt(torch.sum(grad ** 2, dim=1))
+                    d_loss_gp = torch.mean((grad_l2norm - 1) ** 2)
+
+                    # Backward + Optimize
+                    d_loss = self.lambda_gp * d_loss_gp
+
+                    self.reset_grad()
+                    d_loss.backward()
+                    self.d_optimizer.step()
 
             # ================== Train G and gumbel ================== #
             # Create random noise
@@ -167,26 +170,36 @@ class Trainer(object):
 
 
             # Print out log info
-            if (step + 1) % self.log_step == 0:
+            if step % self.log_step == 0:
                 elapsed = time.time() - start_time
                 elapsed = str(datetime.timedelta(seconds=elapsed))
-                print("Elapsed [{}], G_step [{}/{}], D_step[{}/{}], d_out_real: {:.4f}, "
-                      " ave_gamma_l3: {:.4f}, ave_gamma_l4: {:.4f}".
-                      format(elapsed, step + 1, self.total_step, (step + 1),
-                             self.total_step , d_loss_real.data[0],
-                             self.G.attn1.gamma.mean().data[0], self.G.attn2.gamma.mean().data[0] ))
+                print("Elapsed [{}], G_step [{}/{}], D_step[{}/{}], d_out_real: {:.4f}, ".
+                      #" ave_gamma_l3: {:.4f}, ave_gamma_l4: {:.4f}".
+                      format(elapsed, step, self.total_step, step,
+                             self.total_step , d_loss_real.data[0]))
+                             #self.G.attn1.gamma.mean().data[0], self.G.attn2.gamma.mean().data[0] ))
 
             # Sample images
-            if (step + 1) % self.sample_step == 0:
-                fake_images,_,_= self.G(fixed_z)
+            if step % self.sample_step == 0:
+                fake_images= self.G(fixed_z)
                 save_image(denorm(fake_images.data),
-                           os.path.join(self.sample_path, '{}_fake.png'.format(step + 1)))
+                           os.path.join(self.sample_path, '{}_fake.png'.format(step)))
 
-            if (step+1) % model_save_step==0:
+            if step % model_save_step==0:
                 torch.save(self.G.state_dict(),
-                           os.path.join(self.model_save_path, '{}_G.pth'.format(step + 1)))
+                           os.path.join(self.model_save_path, '{}_G.pth'.format(step)))
                 torch.save(self.D.state_dict(),
-                           os.path.join(self.model_save_path, '{}_D.pth'.format(step + 1)))
+                           os.path.join(self.model_save_path, '{}_D.pth'.format(step)))
+
+        # save final sample and model
+        fake_images= self.G(fixed_z)
+        save_image(denorm(fake_images.data),
+                   os.path.join(self.sample_path, 'final_fake.png'))
+        torch.save(self.G.state_dict(),
+                    os.path.join(self.model_save_path, 'final_G.pth'))
+        torch.save(self.D.state_dict(),
+                    os.path.join(self.model_save_path, 'final_D.pth'))
+
 
     def build_model(self):
 

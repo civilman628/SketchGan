@@ -18,7 +18,7 @@ class Nonlocal(nn.Module):
 
     def forward(self, x):
         batchsize = x.size(0)
-        print ('x: ',x.size())
+        #print ('x: ',x.size())
         theta_x = self.theta(x)
         theta_x = theta_x.view(batchsize,self.inter_channels,-1)
         theta_x = theta_x.permute(0,2,1)
@@ -27,19 +27,19 @@ class Nonlocal(nn.Module):
         f = torch.matmul(theta_x,phi_x)
         #f = F.softmax(f)
         N = f.size(-1)
-        print("N is :",N)
+        #print("N is :",N)
         f = f / N
-        print ('f: ',f.size())
+        #print ('f: ',f.size())
         g_x = self.g(x)
         g_x = g_x.view(batchsize,self.inter_channels,-1)
         g_x = g_x.permute(0, 2, 1)
         y = torch.matmul(f,g_x)
         y = y.permute(0, 2, 1)
-        print("y: ",y.size())
+        #print("y: ",y.size())
         y =  y.view(batchsize,self.inter_channels,x.size(2),x.size(3))
-        print("y: ",y.size())
+        #print("y: ",y.size())
         y = self.recovery(y)
-        print("y: ",y.size(),' x: ', x.size())
+        #print("y: ",y.size(),' x: ', x.size())
         z = x+y
 
         return z
@@ -102,9 +102,9 @@ class GlobalSumPooling(nn.Module):
         super(GlobalSumPooling, self).__init__()
         
     def forward(self, x):
-        print("x before resize:", x.shape)
+        #print("x before resize:", x.shape)
         x = x.view(x.size(0),x.size(1),-1)
-        print('sum size:', x.size())
+        #print('sum size:', x.size())
         x = torch.sum(x,dim=2)
         
         return x
