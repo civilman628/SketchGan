@@ -13,12 +13,14 @@ class Data_Loader():
         self.shuf = shuf
         self.train = train
 
-    def transform(self, resize, totensor, normalize, centercrop):
+    def transform(self,centercrop, resize, flip, totensor, normalize ):
         options = []
         if centercrop:
             options.append(transforms.CenterCrop(160))
         if resize:
             options.append(transforms.Resize((self.imsize,self.imsize)))
+        if flip:
+            options.append(transforms.RandomHorizontalFlip(p=0.5))
         if totensor:
             options.append(transforms.ToTensor())
         if normalize:
@@ -27,12 +29,12 @@ class Data_Loader():
         return transform
 
     def load_dresses(self):
-        transforms = self.transform(False, False, True, False)
+        transforms = self.transform(False, False, True ,True, True )
         dataset = ImageFolder(self.path+'/dresses', transform=transforms)
         return dataset
 
     def load_tops(self):
-        transforms = self.transform(False, True, True, False)
+        transforms = self.transform(False, False, True ,True, True )
         dataset = dsets.ImageFolder(self.path+'/tops', transform=transforms)
         return dataset
 
@@ -44,7 +46,7 @@ class Data_Loader():
         elif self.dataset == 'tops':
             dataset = self.load_tops()
         '''
-        transforms = self.transform(False, False, True, False)
+        transforms = self.transform(False, False, True ,True, True)
         #print (os.path.abspath('../../data/dresses'))
         dataset = ImageFolder( self.path, transform=transforms)
 

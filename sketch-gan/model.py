@@ -52,7 +52,7 @@ class ResidualBlock(nn.Module):
         self.layers=nn.Sequential(
             nn.Conv2d(dim_in, dim_out, kernel_size=3, stride=1, padding=1, bias=False),
             nn.InstanceNorm2d(dim_out, affine=True, track_running_stats=True),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Conv2d(dim_out, dim_out, kernel_size=3, stride=1, padding=1, bias=False),
             nn.InstanceNorm2d(dim_out, affine=True, track_running_stats=True)
             )
@@ -87,9 +87,9 @@ class ResidualBlock2(nn.Module):
         nn.init.orthogonal_(self.conv2.weight.data, 1.)
 
         self.layers=nn.Sequential(
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             self.conv1,
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             self.conv2,
             )
 
@@ -127,17 +127,17 @@ class ResidualBlockUp(nn.Module):
         #model.append
         self.shortcut= nn.Sequential(
             nn.BatchNorm2d(in_channels*ch),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             UpSample(),
             SpectralNorm(self.identity),
             )
         
         self.model=nn.Sequential(
             nn.BatchNorm2d(in_channels*ch),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             SpectralNorm(self.conv1),
             nn.BatchNorm2d(out_channels*ch),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             UpSample(),
             SpectralNorm(self.conv2)
             )
@@ -164,17 +164,17 @@ class ResidualBlockDown(nn.Module):
         #model.append
 
         self.shortcut= nn.Sequential(
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             SpectralNorm(self.identity),
             DownSample()
             )
         
         self.model=nn.Sequential(
             #nn.BatchNorm2(in_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             SpectralNorm(self.conv1),
             #nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             DownSample(),
             SpectralNorm(self.conv2)
             )
@@ -195,15 +195,15 @@ class Generator2(nn.Module):
         nn.init.orthogonal_(self.final.weight.data, 1.)
 
         self.model = nn.Sequential(
-            ResidualBlockUp(16,16),
-            ResidualBlockUp(16,8),
-            ResidualBlockUp(8,8),
-            ResidualBlockUp(8,4),
-            ResidualBlockUp(4,2),
+            ResidualBlockUp(16,16,ch),
+            ResidualBlockUp(16,8,ch),
+            ResidualBlockUp(8,8,ch),
+            ResidualBlockUp(8,4,ch),
+            ResidualBlockUp(4,2,ch),
             Nonlocal(2*ch),
-            ResidualBlockUp(2,1),
+            ResidualBlockUp(2,1,ch),
             nn.BatchNorm2d(self.ch),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             SpectralNorm(self.final),
             nn.Tanh()
             )
@@ -222,15 +222,15 @@ class Discriminator(nn.Module):
         super(Discriminator,self).__init__()
 
         self.model = nn.Sequential(
-            ResidualBlockDown(3,1),
-            ResidualBlockDown(1*ch,2),
+            ResidualBlockDown(3,1,ch),
+            ResidualBlockDown(1*ch,2,ch),
             Nonlocal(2*ch),
-            ResidualBlockDown(2*ch,4),
-            ResidualBlockDown(4*ch,8),
-            ResidualBlockDown(8*ch,8),
-            ResidualBlockDown(8*ch,16),
+            ResidualBlockDown(2*ch,4,ch),
+            ResidualBlockDown(4*ch,8,ch),
+            ResidualBlockDown(8*ch,8,ch),
+            ResidualBlockDown(8*ch,16,ch),
             ResidualBlock2(16*ch,16*ch),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             GlobalSumPooling(),
             nn.Linear(16*ch,1)
             )
